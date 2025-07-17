@@ -1,5 +1,5 @@
 import { makeAutoObservable, runInAction } from 'mobx';
-import { apiClient } from '../utils/apiClient';
+import { apiClient, quotesClient } from '../utils/apiClient';
 import {
   Portfolio,
   PortfolioStocksActions,
@@ -13,6 +13,7 @@ export class PortfolioStore {
   userName: string | undefined;
   loading = false;
   error: string | null = null;
+  stockError: string | null = null;
 
   constructor() {
     makeAutoObservable(this);
@@ -38,6 +39,12 @@ export class PortfolioStore {
 
   async updateStockPortfolio(stock: string, action: PortfolioStocksActions) {
     try {
+      const stockExists = (await quotesClient.get(stock)).data[0];
+      if (!stockExists) {
+        runInAction(() => (this.stockError = `Stock ${stock} does not exist.`));
+        return;
+      }
+
       const res = await apiClient.patch<StockSymbol[]>(
         `/portfolio/stocks/${this.userName}`,
         { stock, action }

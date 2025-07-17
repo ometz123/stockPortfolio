@@ -10,6 +10,7 @@ import {
   CircularProgress,
   Typography,
   Box,
+  Stack,
 } from '@mui/material';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -22,7 +23,7 @@ const PortfolioPage = observer(() => {
   const [newSymbol, setNewSymbol] = useState('');
 
   useEffect(() => {
-    portfolioStore.fetchPortfolio();
+    portfolioStore.fetchPortfolio().then();
   }, []);
 
   const handleStockClick = (stock: StockSymbol) => {
@@ -40,11 +41,17 @@ const PortfolioPage = observer(() => {
     }
   };
 
-  if (portfolioStore.loading) return <CircularProgress />;
+  if (portfolioStore.loading) {
+    return (
+      <Box display="flex" justifyContent="center" mt={4}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   if (portfolioStore.error) {
     return (
-      <Box display="flex" alignItems="center" color="error.main" m={2}>
+      <Box display="flex" alignItems="center" color="error.main" mt={4} px={2}>
         <ErrorOutlineIcon sx={{ mr: 1 }} />
         <Typography>{portfolioStore.error}</Typography>
       </Box>
@@ -52,48 +59,74 @@ const PortfolioPage = observer(() => {
   }
 
   return (
-    <div style={{ padding: 16 }}>
-      <Typography variant="h4">My Portfolio</Typography>
-      <div style={{ margin: '16px 0' }}>
+    <Box maxWidth="600px" mx="auto" px={2} py={4}>
+      <Typography variant="h4" gutterBottom>
+        My Portfolio
+      </Typography>
+
+      <Stack direction="row" spacing={2} mb={3} alignItems="center">
         <TextField
-          label="Add Symbol"
+          fullWidth
+          label="Stock Symbol"
           value={newSymbol}
           onChange={(e) => setNewSymbol(e.target.value.toUpperCase())}
+          size="small"
         />
         <Button
+          variant="contained"
           onClick={async () => {
+            if (!newSymbol.trim()) return;
             await handlePortfolioUpdate(newSymbol, PortfolioStocksActions.ADD);
             setNewSymbol('');
           }}
         >
           Add
         </Button>
-      </div>
-      <List>
-        {portfolioStore.stocks?.map((s) => (
-          <ListItem
-            key={s}
-            secondaryAction={
-              <IconButton
-                edge="end"
-                onClick={() =>
-                  handlePortfolioUpdate(s, PortfolioStocksActions.REMOVE)
-                }
-              >
-                <DeleteIcon />
-              </IconButton>
-            }
-          >
-            <Link
-              onClick={() => handleStockClick(s)}
-              to={`${ROUTES.STOCK_DETAILS}`}
+      </Stack>
+      {portfolioStore.stockError && (
+        <Box display="flex" alignItems="center" color="error.main">
+          <ErrorOutlineIcon sx={{ mr: 1 }} />
+          <Typography>{portfolioStore.stockError}</Typography>
+        </Box>
+      )
+      }
+      {portfolioStore.stocks?.length > 0 ? (
+        <List>
+          {portfolioStore.stocks.map((symbol) => (
+            <ListItem
+              key={symbol}
+              divider
+              secondaryAction={
+                <IconButton
+                  edge="end"
+                  onClick={() =>
+                    handlePortfolioUpdate(symbol, PortfolioStocksActions.REMOVE)
+                  }
+                  aria-label={`Remove ${symbol}`}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              }
             >
-              {s}
-            </Link>
-          </ListItem>
-        ))}
-      </List>
-    </div>
+              <Typography
+                component={Link}
+                to={ROUTES.STOCK_DETAILS}
+                onClick={() => handleStockClick(symbol)}
+                sx={{
+                  textDecoration: 'none',
+                  color: 'primary.main',
+                  '&:hover': { textDecoration: 'underline' },
+                }}
+              >
+                {symbol}
+              </Typography>
+            </ListItem>
+          ))}
+        </List>
+      ) : (
+        <Typography color="text.secondary">Your portfolio is empty.</Typography>
+      )}
+    </Box>
   );
 });
 
