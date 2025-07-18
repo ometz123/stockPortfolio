@@ -1,7 +1,8 @@
 import {
+  BadRequestException,
   Injectable,
   MethodNotAllowedException,
-  NotFoundException,
+  NotFoundException
 } from '@nestjs/common';
 import { CreatePortfolioDto } from './dto/create-portfolio.dto';
 import {
@@ -10,7 +11,7 @@ import {
 } from './dto/update-portfolio.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Portfolio } from '../schemas/portfolio.schema';
-import { Model } from 'mongoose';
+import mongoose, { Model } from 'mongoose';
 import { PortfolioStocksActions } from '@stock-portfolio/shared';
 
 @Injectable()
@@ -28,13 +29,18 @@ export class PortfolioService {
     return `This action returns all portfolio`;
   }
 
-  findOne(userName: string) {
-    const userPortfolio = this.portfolioModel.findOne({
+  async findOne(userName: string) {
+    const userPortfolio = await this.portfolioModel.findOne({
       userName,
     });
 
     if (!userPortfolio) {
-      throw new NotFoundException(`Portfolio for user ${userName} not found`);
+      const newUserPortfolio = await this.portfolioModel.create({
+        userName,
+        stocks: ['AAPL', 'GOOGL', 'MSFT'], // Example stocks
+      });
+
+      return newUserPortfolio.save();
     }
 
     return userPortfolio;
@@ -66,7 +72,6 @@ export class PortfolioService {
           `Stock ${updateStock.stock} already exists in portfolio`
         );
       }
-
       portfolio.stocks.push(updateStock.stock);
 
     } else if (updateStock.action === PortfolioStocksActions.REMOVE) {
@@ -75,7 +80,6 @@ export class PortfolioService {
           `Stock ${updateStock.stock} does not exist in portfolio`
         );
       }
-
       portfolio.stocks = portfolio.stocks.filter(
         (stock) => stock !== updateStock.stock
       );
@@ -84,8 +88,17 @@ export class PortfolioService {
       throw new MethodNotAllowedException('Invalid action');
     }
 
-    await portfolio.save();
-    return portfolio.stocks;
+    try {
+      await portfolio.save();
+      return portfolio.stocks;
+
+    } catch (err) {
+      if (err instanceof mongoose.Error.ValidationError) {
+        const messages = Object.values(err.errors).map((e: any) => e.message);
+        throw new BadRequestException(messages.join('; '));
+      }
+      throw err;
+    }
   }
 
   remove(id: number) {

@@ -38,8 +38,6 @@ cp .env.example .env
 Update `.env`:
 ```env
 VITE_API_KEY=<YOUR.financialmodelingprep.API_KEY>
-VITE_BACKEND_URL=http://<PCName|localhost>:3000/api
-
 ```
 
 5. **Start applications**
@@ -51,13 +49,12 @@ pnpm nx serve backend
 pnpm nx serve frontend
 ```
 
-## Test Setup
+## Create First Portfolio
 
-Create first portfolio:
-```bash
-curl -X POST http://localhost:3000/api/portfolio \
-  -H "Content-Type: application/json" \
-  -d '{"userName": "john_doe", "stocks": ["AAPL", "GOOGL", "MSFT", "TSLA"]}'
-```
+Once you open the portfolio page, 
+the app will create first portfolio by the name of 
+EXAMPLE_USER_NAME=John Doe.
+feel free to change it in the `.env` file.
+
 
 Access frontend at `http://localhost:4200`

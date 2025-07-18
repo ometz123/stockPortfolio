@@ -5,8 +5,9 @@ import {
   PortfolioStocksActions,
   StockSymbol,
 } from '@stock-portfolio/shared';
+import { AxiosError } from 'axios';
 
-const EXAMPLE_USER_NAME = 'john_doe';
+const EXAMPLE_USER_NAME = import.meta.env.VITE_EXAMPLE_USER_NAME || 'John Doe';
 
 export class PortfolioStore {
   stocks: StockSymbol[] = [];
@@ -22,10 +23,12 @@ export class PortfolioStore {
   async fetchPortfolio() {
     this.loading = true;
     this.error = null;
+
     try {
       const res = await apiClient.get<Portfolio>(
         `/portfolio/${EXAMPLE_USER_NAME}`
       );
+
       runInAction(() => {
         this.stocks = res.data.stocks;
         this.userName = res.data.userName;
@@ -38,6 +41,8 @@ export class PortfolioStore {
   }
 
   async updateStockPortfolio(stock: string, action: PortfolioStocksActions) {
+    this.stockError = null;
+
     try {
       const stockExists = (await quotesClient.get(stock)).data[0];
       if (!stockExists) {
@@ -50,8 +55,11 @@ export class PortfolioStore {
         { stock, action }
       );
       runInAction(() => (this.stocks = res.data));
-    } catch (e: any) {
-      console.error(e);
+    } catch (e) {
+      if (e instanceof AxiosError) {
+        console.error(e);
+        runInAction(() => (this.stockError = e.response?.data.message));
+      }
     }
   }
 }

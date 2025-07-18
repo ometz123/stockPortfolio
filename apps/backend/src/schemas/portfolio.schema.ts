@@ -6,7 +6,14 @@ export class Portfolio extends Document {
   @Prop({ required: true, unique: true })
   userName: string;
 
-  @Prop({ required: true })
+  @Prop({
+    required: true,
+    type: [String],
+    validate: {
+      validator: (arr: string[]) => new Set(arr).size === arr.length,
+      message: 'Each stock symbol must be unique in the portfolio',
+    },
+  })
   stocks: string[];
 }
 

@@ -2,9 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useStores } from '../stores';
 import {
-  List,
-  ListItem,
-  IconButton,
   TextField,
   Button,
   CircularProgress,
@@ -13,33 +10,24 @@ import {
   Stack,
 } from '@mui/material';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
-import DeleteIcon from '@mui/icons-material/Delete';
-import { Link } from 'react-router-dom';
-import { ROUTES } from './Routes';
 import { PortfolioStocksActions, StockSymbol } from '@stock-portfolio/shared';
+import SymbolsTable from '../components/shared/SymbolsTable';
 
 const PortfolioPage = observer(() => {
-  const { portfolioStore, stockStore } = useStores();
   const [newSymbol, setNewSymbol] = useState('');
+
+  const { portfolioStore, stockStore } = useStores();
+
+  const handleAddSymbol = async (symbol: StockSymbol) => {
+    await portfolioStore.updateStockPortfolio(
+      symbol,
+      PortfolioStocksActions.ADD
+    );
+  };
 
   useEffect(() => {
     portfolioStore.fetchPortfolio().then();
   }, []);
-
-  const handleStockClick = (stock: StockSymbol) => {
-    stockStore.stock = stock;
-  };
-
-  const handlePortfolioUpdate = async (
-    symbol: StockSymbol,
-    action: PortfolioStocksActions
-  ) => {
-    try {
-      await portfolioStore.updateStockPortfolio(symbol, action);
-    } catch (error) {
-      console.error('Error updating portfolio:', error);
-    }
-  };
 
   if (portfolioStore.loading) {
     return (
@@ -61,7 +49,7 @@ const PortfolioPage = observer(() => {
   return (
     <Box maxWidth="600px" mx="auto" px={2} py={4}>
       <Typography variant="h4" gutterBottom>
-        My Portfolio
+        {portfolioStore.userName} Portfolio
       </Typography>
 
       <Stack direction="row" spacing={2} mb={3} alignItems="center">
@@ -76,56 +64,22 @@ const PortfolioPage = observer(() => {
           variant="contained"
           onClick={async () => {
             if (!newSymbol.trim()) return;
-            await handlePortfolioUpdate(newSymbol, PortfolioStocksActions.ADD);
+            await handleAddSymbol(newSymbol);
             setNewSymbol('');
           }}
         >
           Add
         </Button>
       </Stack>
+
       {portfolioStore.stockError && (
         <Box display="flex" alignItems="center" color="error.main">
           <ErrorOutlineIcon sx={{ mr: 1 }} />
           <Typography>{portfolioStore.stockError}</Typography>
         </Box>
-      )
-      }
-      {portfolioStore.stocks?.length > 0 ? (
-        <List>
-          {portfolioStore.stocks.map((symbol) => (
-            <ListItem
-              key={symbol}
-              divider
-              secondaryAction={
-                <IconButton
-                  edge="end"
-                  onClick={() =>
-                    handlePortfolioUpdate(symbol, PortfolioStocksActions.REMOVE)
-                  }
-                  aria-label={`Remove ${symbol}`}
-                >
-                  <DeleteIcon />
-                </IconButton>
-              }
-            >
-              <Typography
-                component={Link}
-                to={ROUTES.STOCK_DETAILS}
-                onClick={() => handleStockClick(symbol)}
-                sx={{
-                  textDecoration: 'none',
-                  color: 'primary.main',
-                  '&:hover': { textDecoration: 'underline' },
-                }}
-              >
-                {symbol}
-              </Typography>
-            </ListItem>
-          ))}
-        </List>
-      ) : (
-        <Typography color="text.secondary">Your portfolio is empty.</Typography>
       )}
+
+      <SymbolsTable />
     </Box>
   );
 });
